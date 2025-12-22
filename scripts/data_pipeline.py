@@ -251,7 +251,7 @@ def process_all_csvs(task_id, table_name):
         
         # Priority 1: Check current run for forecast
         for t in processed_tables_current_run:
-            if "horizon42" in t:
+            if "sub_forecast_horizon42" in t:
                 forecast_table_name = t
                 print(f"   -> Found Forecast Table in current run: {t}", flush=True)
                 break

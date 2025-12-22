@@ -18,5 +18,6 @@ scripts/data_pipeline_old.py
 # CSV related files
 output/offline_cv_0.505868367034575_horizon28.csv
 output/offline_cv_0.5055558183669507_horizon14.csv
-output/offline_cv_0.5039090629354432_horizon42.csvdata/hpg_reserve.csv
+output/offline_cv_0.5039090629354432_horizon42.csv
+data/hpg_reserve.csv
 *.bak
