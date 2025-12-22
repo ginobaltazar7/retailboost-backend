@@ -7,6 +7,7 @@ import pandas as pd
 import psycopg2
 import psycopg2.extras
 import os
+import requests
 from dotenv import load_dotenv
 import re
 from pathlib import Path
@@ -23,6 +24,13 @@ DB_URL = os.getenv("DATABASE_URL")
 
 # Define all folders where data might reside
 DATA_DIRS = [Path('data'), Path('output')]
+
+# Path to google drive for large CSVs https://drive.google.com/uc?id=1-eIwvMTWp3SreJrsRe3BochHP_QFxgxH&export=download
+# Google Drive Configuration
+GDRIVE_FILE_ID = "1-eIwvMTWp3SreJrsRe3BochHP_QFxgxH"
+# Name the file whatever the table should be named in Postgres (e.g., hpg_reserve.csv or horizon42.csv)
+GDRIVE_FILENAME = "hpg_reserve.csv" 
+
 
 DATE_COLUMNS = {"visit_date", "visit_datetime", "reserve_datetime"}
 BATCH_SIZE = 5000 
@@ -44,6 +52,29 @@ def clean_dataframe(df):
             except Exception: pass
     df = df.where(pd.notnull(df), None)
     return df
+
+def download_from_google_drive(file_id, destination):
+    print(f"   -> Downloading file from Google Drive to {destination}...", flush=True)
+    url = f'https://drive.google.com/uc?id={file_id}&export=download'
+    
+    try:
+        response = requests.get(url, stream=True)
+        # Handle the "Google Virus Scan" warning page for large files
+        if "confirm" in response.cookies:
+            url = f"{url}&confirm={response.cookies['confirm']}"
+            response = requests.get(url, stream=True)
+            
+        if response.status_code == 200:
+            with open(destination, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=32768):
+                    if chunk:
+                        f.write(chunk)
+            print("   -> Download complete.", flush=True)
+        else:
+            print(f"   -> Failed to download. Status code: {response.status_code}", flush=True)
+    except Exception as e:
+        print(f"   -> Download Error: {e}", flush=True)
+# -----------------------------------------------------
 
 def update_task_db(task_id, status, progress=None, result=None):
     conn = psycopg2.connect(DB_URL)
@@ -169,6 +200,15 @@ def process_all_csvs(task_id, table_name):
     
     try:
         conn = psycopg2.connect(DB_URL)
+
+        # 0. ENSURE DATA DIRECTORY EXISTS AND DOWNLOAD REMOTE CSV
+        Path('data').mkdir(parents=True, exist_ok=True)
+        
+        if GDRIVE_FILE_ID:
+            local_dest = Path('data') / GDRIVE_FILENAME
+            # Only download if not exists (or always overwrite if you prefer fresh data)
+            # On Heroku, 'data' is wiped on restart, so this will always download fresh.
+            download_from_google_drive(GDRIVE_FILE_ID, local_dest)
         
         # 1. GATHER FILES FROM DATA AND OUTPUT FOLDERS
         csv_files = []

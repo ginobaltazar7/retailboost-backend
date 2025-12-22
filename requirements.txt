@@ -15,6 +15,7 @@ numpy
 meteostat
 matplotlib
 seaborn
+requests
 
 # Specific libraries used in your script
 pyngrok
