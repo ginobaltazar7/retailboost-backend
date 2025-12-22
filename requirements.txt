@@ -1,0 +1,25 @@
+# Core Backend Dependencies
+fastapi
+uvicorn
+gunicorn 
+pydantic
+asyncio
+httpx
+pandas
+requests
+psycopg2-binary
+python-dotenv
+scikit-learn
+lightgbm
+numpy
+meteostat
+matplotlib
+seaborn
+
+# Specific libraries used in your script
+pyngrok
+nest-asyncio
+
+# Development/Testing dependencies (can be a separate file if preferred)
+pytest
+python-dotenv 
