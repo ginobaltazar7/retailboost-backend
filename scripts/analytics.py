@@ -3,7 +3,7 @@ import matplotlib
 matplotlib.use('Agg') # Save memory
 import matplotlib.pyplot as plt
 import seaborn as sns
-from datetime import timedelta
+from datetime import timedelta, datetime
 from meteostat import Point, Daily
 import io
 import base64
@@ -44,6 +44,24 @@ def generate_retail_insights(data_map):
         visit_data['visit_date'] = pd.to_datetime(visit_data['visit_date'])
         visit_data['visitors'] = pd.to_numeric(visit_data['visitors'], downcast='unsigned')
         
+        # Shift date to more current
+        DAYS_TO_SHIFT = 0 
+        original_earliest_year = None
+        target_year = None
+
+        original_earliest_year = visit_data['visit_date'].min().year
+        target_year = datetime.now().year # Get the current year
+        if target_year > original_earliest_year:
+            reference_original_date = datetime(original_earliest_year, 1, 1)
+            reference_target_date = datetime(target_year, 1, 1)
+            DAYS_TO_SHIFT = (reference_target_date - reference_original_date).days
+        else:
+            DAYS_TO_SHIFT = 0 # already current and no shift needed
+
+        # Re pre-processing to apply days to shift adjustment
+        print(f"   -> Analytics: Applying Time Warp of +{DAYS_TO_SHIFT} days (2017 -> {target_year})...", flush=True)
+        visit_data['visit_date'] = visit_data['visit_date'] + timedelta(days=DAYS_TO_SHIFT)
+
         df = pd.merge(visit_data, store_info, on='air_store_id', how='left')
 
         del visit_data
@@ -56,7 +74,8 @@ def generate_retail_insights(data_map):
 
         # Chart 1: Holidays
         if date_info is not None:
-            date_info['visit_date'] = pd.to_datetime(date_info['calendar_date'])
+            # Apply shift to date_info's visit_date before merging
+            date_info['visit_date'] = pd.to_datetime(date_info['calendar_date']) + timedelta(days=DAYS_TO_SHIFT)
             df_holiday = pd.merge(df[['visit_date', 'visitors']], date_info[['visit_date', 'holiday_flg']], on='visit_date', how='left')
             df_holiday['day_type'] = df_holiday['holiday_flg'].map({1: 'Holiday', 0: 'Working Day'})
             
@@ -79,7 +98,7 @@ def generate_retail_insights(data_map):
         if forecast_agg_df is not None:
             if 'id' in forecast_agg_df.columns:
                 forecast_agg_df[['air_store_id', 'visit_date']] = forecast_agg_df['id'].str.rsplit('_', n=1, expand=True)
-                forecast_agg_df['visit_date'] = pd.to_datetime(forecast_agg_df['visit_date'])
+                forecast_agg_df['visit_date'] = pd.to_datetime(forecast_agg_df['visit_date']) + timedelta(days=DAYS_TO_SHIFT)
             
             hist_daily = df.groupby('visit_date')['visitors'].sum().reset_index()
             fcast_daily = forecast_agg_df.groupby('visit_date')['visitors'].sum().reset_index()
