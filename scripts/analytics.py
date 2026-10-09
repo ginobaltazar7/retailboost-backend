@@ -4,7 +4,7 @@ matplotlib.use('Agg') # Save memory
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import timedelta, datetime
-from meteostat import Point, Daily
+from meteostat import Point, daily
 import io
 import base64
 import gc 
